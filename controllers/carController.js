@@ -1,6 +1,6 @@
 const Car = require('../models/carModel');
 const ErrorHandler = require('../utils/errorHandler');
-const cloudinary = require('cloudinary');
+const cloudinary = require('cloudinary').v2;
 
 exports.createCar = async (req, res, next) => {
   try {
