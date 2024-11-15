@@ -6,12 +6,16 @@ exports.createCar = async (req, res, next) => {
   try {
     let images = [];
 
-    if (typeof req.body.images === 'string') {
-      images.push(req.body.images);
-    } else {
-      images = req.body.images;
+    // Check if req.body.images exists
+    if (req.body.images) {
+      if (typeof req.body.images === 'string') {
+        images.push(req.body.images);
+      } else {
+        images = req.body.images;
+      }
     }
 
+    // Add a check for images length only if images is defined
     if (images.length > 10) {
       return next(new ErrorHandler('Maximum 10 images are allowed', 400));
     }
@@ -38,6 +42,7 @@ exports.createCar = async (req, res, next) => {
       success: true,
       car
     });
+    console.log("Car created successfully...!!!");
   } catch (error) {
     next(error);
   }
@@ -46,11 +51,16 @@ exports.createCar = async (req, res, next) => {
 exports.getAllCars = async (req, res, next) => {
   try {
     const cars = await Car.find({ user: req.user.id });
-
-    res.status(200).json({
-      success: true,
-      cars
-    });
+    // check if cars are empty
+    if (!cars) {
+      return next(new ErrorHandler('No cars found', 404));
+    }
+    else {
+      return res.status(200).json({
+        success: true,
+        cars
+      });
+    }
   } catch (error) {
     next(error);
   }
@@ -165,20 +175,20 @@ exports.deleteCar = async (req, res, next) => {
     }
   };
   
-  exports.searchCars = async (req, res, next) => {
-    try {
-      const { keyword } = req.query;
+exports.searchCars = async (req, res, next) => {
+  try {
+    const { keyword } = req.query;
   
-      const cars = await Car.find({
-        user: req.user.id,
-        $text: { $search: keyword }
-      });
+    const cars = await Car.find({
+      user: req.user.id,
+      $text: { $search: keyword }
+    });
   
-      res.status(200).json({
-        success: true,
-        cars
-      });
-    } catch (error) {
-      next(error);
-    }
-  };
+    res.status(200).json({
+      success: true,
+      cars
+    });
+  } catch (error) {
+    next(error);
+  }
+};
