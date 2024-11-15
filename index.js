@@ -28,8 +28,8 @@ const user = require('./routes/userRoute');
 const car = require('./routes/carRoute');
 
 
-app.use('/api/v1', user);
-app.use('/api/v1', car);
+app.use('/api/users', user);
+app.use('/api/cars', car);
 
 // Error Middleware
 app.use(errorMiddleware);

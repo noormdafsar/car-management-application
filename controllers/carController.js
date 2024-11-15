@@ -1,17 +1,22 @@
 const Car = require('../models/carModel');
 const ErrorHandler = require('../utils/errorHandler');
 const cloudinary = require('cloudinary').v2;
+const { uploadImageToCloudinary } = require('../utils/cloudinary');
 
 exports.createCar = async (req, res, next) => {
   try {
-    let images = [];
+    // let images = [];
 
-    // Check if req.body.images exists
-    if (req.body.images) {
-      if (typeof req.body.images === 'string') {
-        images.push(req.body.images);
-      } else {
-        images = req.body.images;
+    // let images = req.files.images;
+    console.log(req.files);
+    return res.status(200).json({
+      success: true,
+      message: 'Car created successfully',
+    });
+
+    if (req.files) {
+      for (let i = 0; i < req.files.length; i++) {
+        const result = await uploadImageToCloudinary(req.files[i], 'cars');
       }
     }
 

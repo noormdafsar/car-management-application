@@ -9,13 +9,15 @@ const {
   searchCars
 } = require('../controllers/carController');
 const { isAuthenticatedUser } = require('../middlewares/auth');
+const { upload } = require('../middlewares/multer');
 
-router.route('/car/new').post(isAuthenticatedUser, createCar);
-router.route('/cars').get(isAuthenticatedUser, getAllCars);
-router.route('/car/:id')
-  .get(isAuthenticatedUser, getCarDetails)
-  .put(isAuthenticatedUser, updateCar)
-  .delete(isAuthenticatedUser, deleteCar);
-router.route('/cars/search').get(isAuthenticatedUser, searchCars);
+
+router.post('/create', isAuthenticatedUser, createCar);
+router.get('/getallcars', isAuthenticatedUser, getAllCars);
+router.get('/car/:id', isAuthenticatedUser, getCarDetails)
+router.put('/car/:id', isAuthenticatedUser, updateCar)
+router.delete('/car/:id', isAuthenticatedUser, deleteCar);
+router.get('/cars/search', isAuthenticatedUser, searchCars);
+
 
 module.exports = router;
