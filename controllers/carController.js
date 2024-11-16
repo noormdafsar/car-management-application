@@ -105,11 +105,11 @@ exports.getCarDetails = async (req, res, next) => {
     if (!car) {
       return next(new ErrorHandler('Car not found', 404));
     }
-    console.log("Error while fetching car details:", error);
+
     if (car.user.toString() !== req.user.id) {
       return next(new ErrorHandler('Not authorized to access this car', 403));
     }
-    console.log("Error while authorization to access car:", error);
+
     res.status(200).json({
       success: true,
       car
