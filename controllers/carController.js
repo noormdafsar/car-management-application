@@ -68,8 +68,8 @@ exports.createCar = async (req, res, next) => {
       carType, 
       company, 
       dealerName, 
-      user,
-      // user: req.user._id
+      // user,
+      user: req.user._id
     });
 
     console.log("Car created successfully...!!!");
@@ -90,7 +90,7 @@ exports.getAllCars = async (req, res, next) => {
     else {
       return res.status(200).json({
         success: true,
-        cars
+        cars,
       });
     }
   } catch (error) {
@@ -105,15 +105,16 @@ exports.getCarDetails = async (req, res, next) => {
     if (!car) {
       return next(new ErrorHandler('Car not found', 404));
     }
-
+    console.log("Error while fetching car details:", error);
     if (car.user.toString() !== req.user.id) {
       return next(new ErrorHandler('Not authorized to access this car', 403));
     }
-
+    console.log("Error while authorization to access car:", error);
     res.status(200).json({
       success: true,
       car
     });
+    console.log("Car details fetched successfully...!!!", car);
   } catch (error) {
     next(error);
   }
@@ -174,6 +175,7 @@ exports.updateCar = async (req, res, next) => {
       success: true,
       car
     });
+    console.log("Car updated successfully...!!!", car);
   } catch (error) {
     next(error);
   }
@@ -193,15 +195,16 @@ exports.deleteCar = async (req, res, next) => {
 
      // Delete images from cloudinary
      for (let i = 0; i < car.images.length; i++) {
-        await cloudinary.v2.uploader.destroy(car.images[i].public_id);
+        await cloudinary.uploader.destroy(car.images[i].public_id);
       }
   
-      await car.remove();
+      await Car.findByIdAndDelete(req.params.id);
   
       res.status(200).json({
         success: true,
         message: 'Car deleted successfully'
       });
+      console.log('Car deleted successfully...!!!', car);
     } catch (error) {
       next(error);
     }
@@ -220,6 +223,7 @@ exports.searchCars = async (req, res, next) => {
       success: true,
       cars
     });
+    console.log('Cars fetched successfully...!!!', cars);
   } catch (error) {
     next(error);
   }
