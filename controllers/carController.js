@@ -133,51 +133,51 @@ exports.updateCar = async (req, res, next) => {
     }
 
     // Handle image updates
-    if (req.body.images) {
-      // Delete old images
-      for (let i = 0; i < car.images.length; i++) {
-        await cloudinary.v2.uploader.destroy(car.images[i].public_id);
-      }
-
-      let images = [];
-      if (typeof req.body.images === 'string') {
-        images.push(req.body.images);
-      } else {
-        images = req.body.images;
-      }
-
-      if (images.length > 10) {
-        return next(new ErrorHandler('Maximum 10 images are allowed', 400));
-      }
-
-      const imagesLinks = [];
-
-      for (let i = 0; i < images.length; i++) {
-        const result = await cloudinary.v2.uploader.upload(images[i], {
-          folder: 'cars'
+    let pics = car.images;
+    if (req.files && req.files.length > 0) {
+      pics = [];
+      for (let i = 0; i < req.files.length; i++) {
+        const result = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: 'cars' },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          streamifier.createReadStream(req.files[i].buffer).pipe(stream);
         });
-
-        imagesLinks.push({
+        
+        pics.push({
           public_id: result.public_id,
           url: result.secure_url
         });
       }
-
-      req.body.images = imagesLinks;
     }
 
-    car = await Car.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    });
+    const updatedData = {
+      title: req.body.title,
+      description: req.body.description,
+      carType: req.body.carType,
+      company: req.body.company,
+      dealerName: req.body.dealerName,
+      tags: req.body.tags.split(',').map(tag => tag.trim()),
+      images: pics
+    };
+
+    car = await Car.findByIdAndUpdate(
+      req.params.id,
+      updatedData,
+      { new: true, runValidators: true }
+    );
 
     res.status(200).json({
       success: true,
       car
     });
-    console.log("Car updated successfully...!!!", car);
   } catch (error) {
-    next(error);
+    console.log('Update error:', error);
+    next(new ErrorHandler('Failed to update car', 500));
   }
 };
 
@@ -208,23 +208,39 @@ exports.deleteCar = async (req, res, next) => {
     } catch (error) {
       next(error);
     }
-  };
+};
   
 exports.searchCars = async (req, res, next) => {
-  try {
-    const { keyword } = req.query;
+    try {
+      const { keyword } = req.query;
+      
+      let searchQuery = {
+        user: req.user.id
+      };
   
-    const cars = await Car.find({
-      user: req.user.id,
-      $text: { $search: keyword }
-    });
+      if (keyword) {
+        // Check if keyword is a valid ObjectId
+        if (keyword.match(/^[0-9a-fA-F]{24}$/)) {
+          searchQuery._id = keyword;
+        } else {
+          searchQuery.$or = [
+            { title: { $regex: keyword, $options: 'i' } },
+            { carType: { $regex: keyword, $options: 'i' } },
+            { company: { $regex: keyword, $options: 'i' } }
+          ];
+        }
+      }
   
-    res.status(200).json({
-      success: true,
-      cars
-    });
-    console.log('Cars fetched successfully...!!!', cars);
-  } catch (error) {
-    next(error);
-  }
+      const cars = await Car.find(searchQuery);
+      
+      res.status(200).json({
+        success: true,
+        count: cars.length,
+        cars
+      });
+    } catch (error) {
+      next(new ErrorHandler(`Search operation failed: ${error.message}`, 500));
+    }
 };
+  
+  
