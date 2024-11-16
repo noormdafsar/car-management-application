@@ -1,55 +1,82 @@
 const Car = require('../models/carModel');
 const ErrorHandler = require('../utils/errorHandler');
 const cloudinary = require('cloudinary').v2;
-const { uploadImageToCloudinary } = require('../utils/cloudinary');
+const streamifier = require('streamifier');
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+
 
 exports.createCar = async (req, res, next) => {
   try {
-    // let images = [];
+    let pics = [];
+    console.log('hiiiiiiiiiiiiiiiiiiii');
 
-    // let images = req.files.images;
-    console.log(req.files);
-    return res.status(200).json({
-      success: true,
-      message: 'Car created successfully',
-    });
-
+    // Check if files are uploaded
     if (req.files) {
+
+      // check for number of images 
+      if (req.files.length > 10) {
+        console.log(req.files.length);
+        return res.status(404).json({message: "You can upload maximum 10 pictures."})
+      }
+      
+      // Helper function to handle stream uploads to Cloudinary
+      const uploadBuffer = (fileBuffer) => {
+        return new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              folder: 'Nooruddin', // Folder on Cloudinary
+              use_filename: true,  // Use original file name
+              unique_filename: false, // Keep original filename
+            },
+            (error, result) => {
+              if (error) return reject(error);
+              resolve(result);
+            }
+          );
+          streamifier.createReadStream(fileBuffer).pipe(stream);
+        });
+      };
+
+      // Iterate over each file and upload it to Cloudinary
       for (let i = 0; i < req.files.length; i++) {
-        const result = await uploadImageToCloudinary(req.files[i], 'cars');
+        const result = await uploadBuffer(req.files[i].buffer); // Await the upload
+        console.log(result); // Log the Cloudinary result for debugging
+        pics.push({
+          public_id: result.public_id,
+          url: result.secure_url,
+        });
       }
     }
 
-    // Add a check for images length only if images is defined
-    if (images.length > 10) {
-      return next(new ErrorHandler('Maximum 10 images are allowed', 400));
-    }
+    console.log('pics array:', pics);
+    console.log('Img Uploaded Successfully!');
 
-    const imagesLinks = [];
-
-    for (let i = 0; i < images.length; i++) {
-      const result = await cloudinary.v2.uploader.upload(images[i], {
-        folder: 'cars'
-      });
-
-      imagesLinks.push({
-        public_id: result.public_id,
-        url: result.secure_url
-      });
-    }
-
-    req.body.images = imagesLinks;
-    req.body.user = req.user.id;
-
-    const car = await Car.create(req.body);
-
-    res.status(201).json({
-      success: true,
-      car
+    // Create a new car record 
+    const { title, description, images, tags, carType, company, dealerName, user } = req.body;
+    const car = await Car.create({
+      title, 
+      description, 
+      images: pics, 
+      tags, 
+      carType, 
+      company, 
+      dealerName, 
+      user,
+      // user: req.user._id
     });
+
     console.log("Car created successfully...!!!");
+    res.status(201).json({ success: true, car });
   } catch (error) {
-    next(error);
+    console.log(error.message);
+    res.status(500).json({ message: error.message });
   }
 };
 

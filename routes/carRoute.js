@@ -12,7 +12,7 @@ const { isAuthenticatedUser } = require('../middlewares/auth');
 const { upload } = require('../middlewares/multer');
 
 
-router.post('/create', isAuthenticatedUser, createCar);
+router.post('/create', upload.array('images', 10), createCar);
 router.get('/getallcars', isAuthenticatedUser, getAllCars);
 router.get('/car/:id', isAuthenticatedUser, getCarDetails)
 router.put('/car/:id', isAuthenticatedUser, updateCar)
